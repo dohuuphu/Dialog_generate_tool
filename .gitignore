@@ -1,0 +1,39 @@
+.vscode
+__pycache__
+audio/
+pretrained_models/
+video/
+
+# Identify speaker
+Identify_speaker/upload_file/
+Identify_speaker/static/
+Identify_speaker/speaker_id/
+
+# denoise
+*.DS_Store
+*.pyc
+denoiser/egs/
+*.nfs*
+denoiser/outputs/
+denoiser/enhanced/
+*.vim
+denoiser/models/
+denoiser/private/
+denoiser/dist
+denoiser/build
+*.egg-info
+*.th
+denoiser/launch_master.sh
+denoiser/conf/dset/master.yaml
+
+# STT
+STT/temp
+STT/lm
+*.zip
+*.tar
+*.wav
+*.ckpt
+*.th
+*.binary
+*.bin
+*.bak

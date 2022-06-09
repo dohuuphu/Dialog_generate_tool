@@ -1,0 +1,5 @@
+.vscode
+__pycache__
+upload_file/
+static/
+speaker_id/

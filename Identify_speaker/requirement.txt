@@ -1,0 +1,8 @@
+uvicorn
+socketio
+fastapi
+webrtcvad
+aiofiles
+#Cython
+#nemo_toolkit[all]
+#protobuf==3.16.0

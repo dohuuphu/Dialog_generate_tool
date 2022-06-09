@@ -1,0 +1,69 @@
+# ################################
+# Model: wav2vec2 + DNN + CTC/Attention
+# Augmentation: SpecAugment
+# Authors: Le Do Thanh Binh 2021
+# ################################
+
+sample_rate: 16000
+wav2vec2_hub: dragonSwing/wav2vec2-base-vn-270h
+
+# Model parameters
+activation: !name:torch.nn.LeakyReLU
+dnn_layers: 2
+dnn_neurons: 768
+dropout_prob: 0.1
+
+# Outputs
+output_neurons: 696 # BPE size, index(blank/eos/bos) = 0
+output_tones: 12
+
+# Decoding parameters
+# Be sure that the bos and eos index match with the BPEs ones
+blank_index: 0
+bos_index: 1
+eos_index: 2
+unk_index: 3
+
+tokenizer: !apply:custom.Wav2Vec2WordpieceTokenizer.from_pretrained
+  pretrained_model_name_or_path: !ref <wav2vec2_hub>
+
+dropout: !new:torch.nn.Dropout
+  p: !ref <dropout_prob>
+
+wav2vec2: !new:speechbrain.lobes.models.huggingface_wav2vec.HuggingFaceWav2Vec2
+  source: !ref <wav2vec2_hub>
+  output_norm: True
+  freeze: True
+  save_path: config_model
+
+lm_head: !new:torch.nn.Linear
+  in_features: !ref <dnn_neurons>
+  out_features: !ref <output_neurons>
+
+tone_head: !new:torch.nn.Linear
+  in_features: !ref <dnn_neurons>
+  out_features: !ref <output_tones>
+
+log_softmax: !new:speechbrain.nnet.activations.Softmax
+  apply_log: True
+
+ctc_cost: !name:speechbrain.nnet.losses.ctc_loss
+  blank_index: !ref <blank_index>
+
+model: !new:torch.nn.ModuleList
+  - [!ref <wav2vec2>, !ref <dropout>, !ref <lm_head>, !ref <tone_head>]
+
+encoder: !new:speechbrain.nnet.containers.LengthsCapableSequential
+  wav2vec2: !ref <wav2vec2>
+  dropout: !ref <dropout>
+  lm_head: !ref <lm_head>
+
+decoding_function: !name:speechbrain.decoders.ctc_greedy_decode
+  blank_id: !ref <blank_index>
+
+modules:
+  encoder: !ref <encoder>
+
+pretrainer: !new:speechbrain.utils.parameter_transfer.Pretrainer
+  loadables:
+    model: !ref <model>
