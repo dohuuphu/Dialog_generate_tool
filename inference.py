@@ -68,7 +68,7 @@ class Dialog():
 
                 # audio_np = self.denoise_numpyData(audio_np).astype(np.float64)
                 audio_t = torch.from_numpy(audio_np).unsqueeze(1)
-                text = self.asr_model.transcribe_batch(self.asr_model.audio_normalizer(audio_t, SAMPLE_RATE).unsqueeze(0), torch.tensor([1.0]))[0] 
+                text = self.asr_model.transcribe_batch(self.asr_model.audio_normalizer(audio_t, SAMPLE_RATE).unsqueeze(0), torch.tensor([1.0]))[0] if self.asr_model else "emtpy"
 
                 # ===========================================
                 # tmp_path = 'test.wav'
@@ -159,14 +159,23 @@ def main(files_path, dialog):
     # audio_denoise_path = dialog.denoise_fullAudio(audio_path)
 
     
-
+    dialog.id_model.database.clean_database()
     dialog.inference(files_path)
 
 if __name__ == "__main__":
+    [ shutil.rmtree(i) for i in glob.glob('/mnt/c/Users/phudh/Desktop/src/dialog_system/Identify_speaker/speaker_id/*')]
     dialog = Dialog()
     
 
     files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/dialog/dialog.wav'
+    main(files_path, dialog)
+    files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/baongam/baongam_denoise.wav'
+    main(files_path, dialog)
+    files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/hongnhan_tap21/hongnhan_tap21_denoise.wav'
+    main(files_path, dialog)
+    files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/hồngnhan/hồngnhan_denoise.wav'
+    main(files_path, dialog)
+    files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/phim1/phim1_denoise.wav'
     main(files_path, dialog)
 
     

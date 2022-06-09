@@ -26,6 +26,14 @@ class Database():
                     for emb in self.read_spkEmb(path_personFolder):
                         self.add_newEmb2storage(emb, path_personFolder.split('/')[-1])  
 
+    def clean_database(self):
+        self.storage = None
+        self.map_storage = []
+        self.num_speaker = 0
+        self.storage = faiss.IndexFlatL2(DIMENSION)
+
+        # [ shutil.rmtree(i) for i in glob.glob(f'{DB_ROOT}/*')]
+
     # read, convert and append emb to list_emb    
     def read_spkEmb(self, personal_folders):
         list_emb = []
