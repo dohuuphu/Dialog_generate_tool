@@ -62,28 +62,44 @@ class Dialog():
         audio_ = AudioFile(audio_path)
         with open(audio_path.replace('.wav','.txt'), 'w') as w:
             for start, end, audio_buffer, s in audio_.split_file():
-
+ 
                 # speech to text
                 audio_np = self.buffer_to_numpy(audio_, audio_buffer)
+
                 # audio_np = self.denoise_numpyData(audio_np).astype(np.float64)
                 audio_t = torch.from_numpy(audio_np).unsqueeze(1)
-                text =  self.asr_model.transcribe_batch(self.asr_model.audio_normalizer(audio_t, SAMPLE_RATE).unsqueeze(0), torch.tensor([1.0]))[0] 
+                text = self.asr_model.transcribe_batch(self.asr_model.audio_normalizer(audio_t, SAMPLE_RATE).unsqueeze(0), torch.tensor([1.0]))[0] 
+
+                # ===========================================
+                # tmp_path = 'test.wav'
+                # wavfile.write(tmp_path, SAMPLE_RATE, audio_np.astype(np.float32) )
+                # #format data
+                # sound = am.from_file(tmp_path, format='wav')
+                # sound = sound.set_frame_rate(SAMPLE_RATE)
+                # sound = sound.set_channels(1)
+                # sound.export(tmp_path, format='wav')
+                # samplerate, data = wavfile.read(tmp_path)
+                # audio_np = data.astype(np.float64)
+                #=======================================
 
                 # identify speaker
+                speaker = 'Null'
+                score = 0
                 if self.id_model.database.num_speaker > 0:
                     stt, score, speaker, emb  = self.id_model.verify_speakers(audio_np)
                     if stt is IDENTIFIED:
-                        info = f'speaker {speaker} - {score}'
-                        if score > THRESHOLD + 0.1:
-                            self.save_speaker(emb, audio_np, speaker)
+                        info = f'speaker {speaker}'
+                        # if score > THRESHOLD + 0.1:
+                        #     self.save_speaker(emb, audio_np, speaker)
                     else: 
                         info = self.save_speaker(emb, audio_np)
                 else:
                     emb = self.id_model.calculate_emb(audio_np)
                     info = self.save_speaker(emb, audio_np)
 
-                w.writelines(f'{info}: {text}\n')
-                print(f'{info}: {text}\n')
+                i = f'{info} : {text} | pred {speaker} : {score:.3f} \n'
+                w.writelines(i)
+                print(i)
     
     def save_speaker(self, emb, audio, name = None):
         if self.id_model.save_newEmb(emb = emb, name = name):
@@ -133,16 +149,26 @@ class Dialog():
         return audio_path.replace('.wav', '_denoise.wav')
 
 
-
-if __name__ == "__main__":
+def main(files_path, dialog):
     [ shutil.rmtree(i) for i in glob.glob('/mnt/c/Users/phudh/Desktop/src/dialog_system/Identify_speaker/speaker_id/*')]
-    dialog = Dialog()
+    
 
-    files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/hongnhan_tap21.mp4'
+    # files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/hongnhan_tap21.mp4'
     
     # audio_path = dialog.extrac_audio_from_video(files_path)
     # audio_denoise_path = dialog.denoise_fullAudio(audio_path)
-    # dialog.inference(audio_path)
 
-    audio_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/hongnhan_tap21/hongnhan_tap21_denoise.wav'
-    dialog.inference(audio_path)
+    
+
+    dialog.inference(files_path)
+
+if __name__ == "__main__":
+    dialog = Dialog()
+    
+
+    files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/dialog/dialog.wav'
+    main(files_path, dialog)
+
+    
+
+    
