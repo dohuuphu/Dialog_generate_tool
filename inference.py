@@ -7,6 +7,8 @@ from os.path import dirname, join, basename, exists
 
 sys.path.append('/mnt/c/Users/phudh/Desktop/src/dialog_system/STT')
 sys.path.append('/mnt/c/Users/phudh/Desktop/src/dialog_system/Identify_speaker')
+sys.path.append('/mnt/c/Users/phudh/Desktop/src/dialog_system/Identify_speaker/deep_speaker')
+
 from STT.speechbrain.pretrained import EncoderASR
 from STT.asr_model.text_processing.inverse_normalize import InverseNormalizer
 from STT.asr_model.audio import AudioFile
@@ -34,7 +36,7 @@ VIDEO_ROOT = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video'
 class Dialog():
     def __init__(self) -> None:
         self.normalizer = InverseNormalizer("vi")
-        self.asr_model = EncoderASR.from_hparams(source="/mnt/c/Users/phudh/Desktop/src/dialog_system/STT/config_model")
+        self.asr_model = None #EncoderASR.from_hparams(source="/mnt/c/Users/phudh/Desktop/src/dialog_system/STT/config_model")
         self.id_model = ID_model()
         self.denoiser = Denoiser()
 
@@ -169,14 +171,14 @@ if __name__ == "__main__":
 
     files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/dialog/dialog.wav'
     main(files_path, dialog)
-    files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/baongam/baongam_denoise.wav'
-    main(files_path, dialog)
-    files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/hongnhan_tap21/hongnhan_tap21_denoise.wav'
-    main(files_path, dialog)
-    files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/hồngnhan/hồngnhan_denoise.wav'
-    main(files_path, dialog)
-    files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/phim1/phim1_denoise.wav'
-    main(files_path, dialog)
+    # files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/baongam/baongam_denoise.wav'
+    # main(files_path, dialog)
+    # files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/hongnhan_tap21/hongnhan_tap21_denoise.wav'
+    # main(files_path, dialog)
+    # files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/hồngnhan/hồngnhan_denoise.wav'
+    # main(files_path, dialog)
+    # files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/phim1/phim1_denoise.wav'
+    # main(files_path, dialog)
 
     
 

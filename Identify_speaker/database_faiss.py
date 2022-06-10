@@ -64,10 +64,9 @@ class Database():
             os.mkdir(personalFolder)
             self.num_speaker += 1 # update number speaker
 
-        if self.add_newEmb2storage(emb, name):
-            return self.write_emb(emb, personalFolder)
 
-        return False
+        return self.write_emb(emb, personalFolder)
+
 
 
     def add_newEmb2storage(self, emb, name):

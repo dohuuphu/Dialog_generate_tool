@@ -6,7 +6,7 @@ DIMENSION = 256#192
 DB_ROOT = '/mnt/c/Users/phudh/Desktop/src/dialog_system/Identify_speaker/speaker_id'
 
 # Inference
-THRESHOLD = 0
+THRESHOLD = 0.7
 SCORE = 0
 SPEAKER = 1
 
