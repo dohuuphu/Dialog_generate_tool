@@ -32,7 +32,7 @@ class Database():
         self.num_speaker = 0
         self.storage = faiss.IndexFlatL2(DIMENSION)
 
-        # [ shutil.rmtree(i) for i in glob.glob(f'{DB_ROOT}/*')]
+        [ shutil.rmtree(i) for i in glob.glob(f'{DB_ROOT}/*')]
 
     # read, convert and append emb to list_emb    
     def read_spkEmb(self, personal_folders):

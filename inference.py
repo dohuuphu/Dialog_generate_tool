@@ -37,6 +37,7 @@ class Dialog():
         self.asr_model = EncoderASR.from_hparams(source="/mnt/c/Users/phudh/Desktop/src/dialog_system/STT/config_model")
         self.id_model = ID_model()
         self.denoiser = Denoiser()
+        self.count_speaker = 0
 
     def buffer_to_numpy(self, audio:AudioFile, buffer):
         if audio.wav_file.getsampwidth() == 1:
@@ -83,16 +84,25 @@ class Dialog():
                 #=======================================
 
                 # identify speaker
+                if len(text.split(' ')) < 2:
+                    continue
                 speaker = 'Null'
                 score = 0
                 if self.id_model.database.num_speaker > 0:
                     stt, score, speaker, emb  = self.id_model.verify_speakers(audio_np)
                     if stt is IDENTIFIED:
                         info = f'speaker {speaker}'
-                        # if score > THRESHOLD + 0.1:
-                        #     self.save_speaker(emb, audio_np, speaker)
+                        if score >= 0.9:
+                            self.save_speaker(emb, audio_np, speaker)
                     else: 
-                        info = self.save_speaker(emb, audio_np)
+                        prefix = ''
+                        if self.count_speaker == 2: # split dialog when meet speaker 3
+                            self.id_model.database.clean_database()
+                            self.count_speaker = 0
+                            prefix = '====================================\n'
+
+                        info = prefix + self.save_speaker(emb, audio_np)
+
                 else:
                     emb = self.id_model.calculate_emb(audio_np)
                     info = self.save_speaker(emb, audio_np)
@@ -100,8 +110,14 @@ class Dialog():
                 i = f'{info} : {text} | pred {speaker} : {score:.3f} \n'
                 w.writelines(i)
                 print(i)
+
+                
+                
+
     
     def save_speaker(self, emb, audio, name = None):
+        if name is None:
+            self.count_speaker+=1
         if self.id_model.save_newEmb(emb = emb, name = name):
             info = f'New_speaker *{self.id_model.database.num_speaker}*'
             
@@ -167,14 +183,14 @@ if __name__ == "__main__":
     dialog = Dialog()
     
 
-    files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/dialog/dialog.wav'
-    main(files_path, dialog)
-    files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/baongam/baongam_denoise.wav'
-    main(files_path, dialog)
-    files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/hongnhan_tap21/hongnhan_tap21_denoise.wav'
-    main(files_path, dialog)
-    files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/hồngnhan/hồngnhan_denoise.wav'
-    main(files_path, dialog)
+    # files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/dialog/dialog.wav'
+    # main(files_path, dialog)
+    # files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/baongam/baongam_denoise.wav'
+    # main(files_path, dialog)
+    # files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/hongnhan_tap21/hongnhan_tap21_denoise.wav'
+    # main(files_path, dialog)
+    # files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/hồngnhan/hồngnhan_denoise.wav'
+    # main(files_path, dialog)
     files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/phim1/phim1_denoise.wav'
     main(files_path, dialog)
 

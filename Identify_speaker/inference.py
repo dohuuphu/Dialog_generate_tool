@@ -13,8 +13,8 @@ class Model():
     def __init__(self):        
         self.database = Database()
         self.device = torch.device('cpu')
-        # self.speaker_model = nemo_asr.models.EncDecSpeakerLabelModel.from_pretrained(model_name='ecapa_tdnn', map_location= self.device, )
-        self.speaker_model = torch.hub.load('RF5/simple-speaker-embedding', 'convgru_embedder', device = 'cpu').eval()
+        self.speaker_model = nemo_asr.models.EncDecSpeakerLabelModel.from_pretrained(model_name='ecapa_tdnn', map_location= self.device, )
+        # self.speaker_model = torch.hub.load('RF5/simple-speaker-embedding', 'convgru_embedder', device = 'cpu').eval()
 
     def verify_speakers(self, input_):
         start = time.time()
@@ -31,20 +31,12 @@ class Model():
         return stt, float(score), self.database.map_storage[id[0][0]], cur_emb
 
     def calculate_emb(self, input_):
-        # if type(input_) is str: # path type 
-        #     cur_emb = self.speaker_model.get_embedding(input_)
-        # else: # data type
-        #     cur_emb = self.preprocess_audio(input_)
-
         if type(input_) is str: # path type 
-            mel = self.speaker_model.melspec_from_file(input_)
-            cur_emb = model(mel[None]) # include [None] to add the batch dimension
+            cur_emb = self.speaker_model.get_embedding(input_)
         else: # data type
-            input_ = torch.from_numpy(input_).float()
-            cur_emb = self.speaker_model(input_[None])
-            # cur_emb = self.speaker_model(mel[None]) # include [None] to add the batch dimension
+            cur_emb = self.preprocess_audio(input_)
 
-        return cur_emb.detach().cpu().numpy()
+        return cur_emb.cpu().numpy()
 
     def preprocess_audio(self, data):
         # ndarray type
