@@ -10,11 +10,12 @@ import faiss
 class Database():
     def __init__(self):
         self.id_persons = DB_ROOT
-        # self.storage = self.parse_database() # use for verify speaker
         self.storage = faiss.IndexFlatL2(DIMENSION)
         self.map_storage = []
         self.num_speaker = 0
         self.init_database()
+
+        
     
     def init_database(self):
         list_personFolder = os.listdir(DB_ROOT)

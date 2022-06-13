@@ -3,6 +3,7 @@ __pycache__
 audio/
 pretrained_models/
 video/
+draf/
 
 # Identify speaker
 Identify_speaker/upload_file/

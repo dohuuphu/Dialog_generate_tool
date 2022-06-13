@@ -38,6 +38,7 @@ class Dialog():
         self.id_model = ID_model()
         self.denoiser = Denoiser()
         self.count_speaker = 0
+        self.count_draf =0
 
     def buffer_to_numpy(self, audio:AudioFile, buffer):
         if audio.wav_file.getsampwidth() == 1:
@@ -59,6 +60,8 @@ class Dialog():
 
     def inference(self, audio_path):
         trans_dict = None
+        self.id_model.database = {'1':[], '2':[]}
+        self.count_speaker = 0
 
         audio_ = AudioFile(audio_path)
         with open(audio_path.replace('.wav','.txt'), 'w') as w:
@@ -69,8 +72,11 @@ class Dialog():
 
                 # audio_np = self.denoise_numpyData(audio_np).astype(np.float64)
                 audio_t = torch.from_numpy(audio_np).unsqueeze(1)
-                text = self.asr_model.transcribe_batch(self.asr_model.audio_normalizer(audio_t, SAMPLE_RATE).unsqueeze(0), torch.tensor([1.0]))[0] if self.asr_model else "emtpy"
+                text = self.asr_model.transcribe_batch(self.asr_model.audio_normalizer(audio_t, SAMPLE_RATE).unsqueeze(0), torch.tensor([1.0]))[0] if self.asr_model else "emtpy a v c"
 
+                self.count_draf+=1
+                path_audio = f'/mnt/c/Users/phudh/Desktop/src/dialog_system/draf/{self.count_draf}.wav'
+                wavfile.write(path_audio, SAMPLE_RATE, audio_np.astype(np.float32) )
                 # ===========================================
                 # tmp_path = 'test.wav'
                 # wavfile.write(tmp_path, SAMPLE_RATE, audio_np.astype(np.float32) )
@@ -84,11 +90,11 @@ class Dialog():
                 #=======================================
 
                 # identify speaker
-                if len(text.split(' ')) < 2:
+                if len(text.split(' ')) < 3:
                     continue
                 speaker = 'Null'
                 score = 0
-                if self.id_model.database.num_speaker > 0:
+                if self.count_speaker > 0:
                     stt, score, speaker, emb  = self.id_model.verify_speakers(audio_np)
                     if stt is IDENTIFIED:
                         info = f'speaker {speaker}'
@@ -97,7 +103,9 @@ class Dialog():
                     else: 
                         prefix = ''
                         if self.count_speaker == 2: # split dialog when meet speaker 3
-                            self.id_model.database.clean_database()
+                            # self.id_model.database.clean_database()
+                            # self.save_audio()
+                            self.id_model.database = {'1':[], '2':[]}
                             self.count_speaker = 0
                             prefix = '====================================\n'
 
@@ -111,6 +119,12 @@ class Dialog():
                 w.writelines(i)
                 print(i)
 
+    def save_audio(self):
+        for id in self.id_model.database:
+            for idx, emb_t in enumerate(self.id_model.database[id]):   
+                path = join(f'/mnt/c/Users/phudh/Desktop/src/dialog_system/draf/{id}_{idx}.txt')    
+                emb_np = emb_t.cpu().numpy().astype(np.float32)
+                np.savetxt(path, emb_np)   
                 
                 
 
@@ -118,14 +132,15 @@ class Dialog():
     def save_speaker(self, emb, audio, name = None):
         if name is None:
             self.count_speaker+=1
+            name = str(self.count_speaker)
         if self.id_model.save_newEmb(emb = emb, name = name):
-            info = f'New_speaker *{self.id_model.database.num_speaker}*'
+            info = f'New_speaker *{self.count_speaker}*'
             
-            # save audio with emb
-            name = (self.id_model.database.num_speaker) if name is None else name
-            personalFolder = join(DB_ROOT, str(name))
-            path_audio = join(personalFolder, f'{len(os.listdir(personalFolder))}.wav')
-            wavfile.write(path_audio, SAMPLE_RATE, audio.astype(np.float32) )
+            # # save audio with emb
+            # name = (self.count_speaker) if name is None else name
+            # personalFolder = join(DB_ROOT, str(name))
+            # path_audio = join(personalFolder, f'{len(os.listdir(personalFolder))}.wav')
+            # wavfile.write(path_audio, SAMPLE_RATE, audio.astype(np.float32) )
         else:
             info = f'Save new speaker failed!!!'
         return info
@@ -175,7 +190,7 @@ def main(files_path, dialog):
     # audio_denoise_path = dialog.denoise_fullAudio(audio_path)
 
     
-    dialog.id_model.database.clean_database()
+    # dialog.id_model.database.clean_database()
     dialog.inference(files_path)
 
 if __name__ == "__main__":
