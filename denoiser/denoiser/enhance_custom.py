@@ -14,7 +14,8 @@ from .utils import LogProgress
 logger = logging.getLogger(__name__)
 
 class Denoiser():
-    def __init__(self, alpha = 0) -> None:
+    def __init__(self, alpha = 0):
+        print("------------------ Loading Denoise model ----------------------")
         self.device = 'cpu'
         self.num_workers = 10
         self.model = pretrained.dns64().to(self.device).eval()
@@ -76,22 +77,37 @@ class Denoiser():
         if dset is None:
             return
         # loader = distrib.loader(dset, batch_size=1)
+
+        for data in dset:
+            # Get batch data
+            if data is not None:
+                noisy_signals, filenames = data
+                noisy_signals = noisy_signals.to(self.device)
+                # if self.device == 'cpu' and self.num_workers > 1:
+                #     pendings.append(
+                #         pool.submit(self._estimate_and_save,
+                #                     self.model, noisy_signals, filenames, out_dir))
+                # else:
+                    # Forward
+                self._estimate_and_save(noisy_signals, filenames, out_dir)
+            else:
+                return
         
-        with ProcessPoolExecutor(self.num_workers) as pool:
-            print('Denoise starting...')
-            # iterator = LogProgress(logger, loader, name="Generate enhanced files")
-            pendings = []
-            for data in dset:
-                # Get batch data
-                if data is not None:
-                    noisy_signals, filenames = data
-                    noisy_signals = noisy_signals.to(self.device)
-                    # if self.device == 'cpu' and self.num_workers > 1:
-                    #     pendings.append(
-                    #         pool.submit(self._estimate_and_save,
-                    #                     self.model, noisy_signals, filenames, out_dir))
-                    # else:
-                        # Forward
-                    self._estimate_and_save(noisy_signals, filenames, out_dir)
-                else:
-                    return
+        # with ProcessPoolExecutor(self.num_workers) as pool:
+        #     print('Denoise starting...')
+        #     # iterator = LogProgress(logger, loader, name="Generate enhanced files")
+        #     pendings = []
+        #     for data in dset:
+        #         # Get batch data
+        #         if data is not None:
+        #             noisy_signals, filenames = data
+        #             noisy_signals = noisy_signals.to(self.device)
+        #             # if self.device == 'cpu' and self.num_workers > 1:
+        #             #     pendings.append(
+        #             #         pool.submit(self._estimate_and_save,
+        #             #                     self.model, noisy_signals, filenames, out_dir))
+        #             # else:
+        #                 # Forward
+        #             self._estimate_and_save(noisy_signals, filenames, out_dir)
+        #         else:
+        #             return

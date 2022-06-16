@@ -1,0 +1,21 @@
+server:
+  ip_address: "0.0.0.0"
+  port: 35411
+
+system:
+  cuda: False
+  GPU_ID: "2"
+
+models:
+
+  face_detection:
+    config: "None"
+    model: "FaceRecognition/weights/face_detection/mnet.25"
+    active: True
+  face_recognition:
+    config: None
+    model: "FaceRecognition/weights/face_recognition/model-r100-ii/model" 
+    active: True
+
+
+
