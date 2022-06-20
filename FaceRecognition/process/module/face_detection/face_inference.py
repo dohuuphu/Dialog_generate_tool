@@ -3,15 +3,16 @@ import os
 import cv2 as cv
 
 from FaceRecognition.process.module.face_detection.utils.alignment import get_reference_facial_points, warp_and_crop_face
-
+c_ = 0
 
 def create_dir(dir):
     if not os.path.isdir(dir):
         os.mkdir(dir)
 
-count = 0
-def process(img, facial_5_points, output_size):
-    global count
+
+
+def process_img(img, facial_5_points, output_size):
+    global c_
     #draw landmark
     img_landmark = draw_landmarks(img, facial_5_points)
 
@@ -29,14 +30,25 @@ def process(img, facial_5_points, output_size):
 
     cropImg_landmark = warp_and_crop_face(img_landmark, facial_points, reference_pts=reference_5pts, crop_size=output_size)
 
-    # count+=1
-    # cv.imwrite(f'/mnt/c/Users/phudh/Desktop/src/dialog_system/draf_2/{count}.jpg',cropImg_landmark )
+    is_good_face, area_point = is_frontFaceing(cropImg_landmark)
+    t = 'save' if is_good_face  else 'discard'
+    # if area_point< 20 :
+    #     dst_img = cv.blur(dst_img, (3, 3))
+    #     cropImg_landmark = cv.blur(cropImg_landmark, (3, 3))
 
-    if is_frontFaceing(cropImg_landmark): 
+
+    c_+=1
+    cv.putText(img=cropImg_landmark, text=t, org=(15, 15), fontFace=cv.FONT_HERSHEY_TRIPLEX, fontScale=0.5, color=(0, 255, 0),thickness=1)
+
+    cv.imwrite(f'/mnt/c/Users/phudh/Desktop/src/dialog_system/draf_2/{c_}.jpg',cropImg_landmark )
+    
+
+    if is_good_face: 
         return dst_img
     else: 
-        return None
+        return    
 
+    
 
 def get_face_area(img, detector, threshold, scales = [640, 1200]):
     im_shape = img.shape
@@ -60,8 +72,7 @@ def get_face_area(img, detector, threshold, scales = [640, 1200]):
 
     crop_faces = []
     for facial_5_points in landmarks:
-        if len(facial_5_points) < 3: continue
-        crop_face_img = process(img, facial_5_points, (112,112))
+        crop_face_img = process_img(img, facial_5_points, (112,112))
         if crop_face_img is not None:
             crop_faces.append(crop_face_img)
 
@@ -79,14 +90,14 @@ def draw_landmarks(img, landmark):
     
 def is_frontFaceing(img_landmark):
     try:
-        e_left, e_right, nose, m_left, m_right =  find_landmark(img_landmark)
+        (e_left, e_right, nose, m_left, m_right), area =  find_landmark(img_landmark)
 
         if abs(e_left[0] - e_right[0]) < 10 or abs(m_left[0] - m_right[0]) < 10:
-            return False
+            return False, 1000
         else:
-            return True
+            return True, area
     except: 
-        return False
+        return False, 1000
 
 def find_landmark(img_landmark):
     landmark = []
@@ -96,10 +107,13 @@ def find_landmark(img_landmark):
     contours, _ = cv.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
 
     # compute the center of the contour
-    for c in contours:
-        M = cv.moments(c)
+    for cnt in contours:
+        M = cv.moments(cnt)
         cX = int(M["m10"] / M["m00"])
         cY = int(M["m01"] / M["m00"])
         landmark.append([cX, cY]) #width, Height
+
+        area = cv.contourArea(cnt) # get area
     
-    return landmark
+
+    return landmark, area
