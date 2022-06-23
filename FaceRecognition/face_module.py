@@ -25,10 +25,10 @@ class FaceRecognize():
     
     # return list of faces
     ''' Input: full image (np.ndarray)'''
-    def get_face(self, image):
-        imga_crop, _, _ = get_face_area(image, self.f_detection, THRES_HOLDE)
+    def get_face(self, image, crop_img = True, img_raw = None):
+        imga_crop, mouth_crop, _ = get_face_area(image, self.f_detection, THRES_HOLDE, crop_img = crop_img, img_raw = img_raw)
 
-        return imga_crop
+        return imga_crop, mouth_crop
 
     ''' Input: face image (np.ndarray)'''
     def get_faceEmb(self, face):
@@ -45,7 +45,7 @@ class FaceRecognize():
         # print(f'search face: {time.time() - start}')
 
         # Decision        
-        stt = IDENTIFIED if score >= THRESHOLD else UN_IDENTIFIED
+        stt = IDENTIFIED if score >= THRESHOLD and score <=1 else UN_IDENTIFIED
         return stt, float(score), id[0][0], emb
 
     def save_newEmb(self, root_folder, name = None, emb = None, prefix = ''):

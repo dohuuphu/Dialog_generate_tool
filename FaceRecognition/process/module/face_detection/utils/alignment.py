@@ -192,7 +192,9 @@ def warp_and_crop_face(src_img,
     # for pt in src_pts:
     #     print((pt[0], pt[1]))
     #     cv2.circle(src_img, (int(pt[0]), int(pt[1])), 1, (0, 0, 255), 4)
+    # test_img = face_img
+    # for point in ref_pts:
+    #     cv2.circle(test_img, (int(point[0]), int(point[1])), 2, (255,0,0), -1)
+    # cv2.imwrite("/mnt/c/Users/phudh/Desktop/src/dialog_system/draf_2/ref_point.jpg", test_img)
 
-    # cv2.imwrite("C:/Users/Admin/Desktop/Face Recognition Dataset/demo/{}.jpg".format(random.randint(1,100)), src_img)
-
-    return face_img
+    return face_img, ref_pts

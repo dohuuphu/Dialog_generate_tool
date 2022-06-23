@@ -30,7 +30,7 @@ class Database():
         self.storage = None
         self.map_storage = []
         self.num_speaker = 0
-        self.storage = faiss.IndexFlatL2(DIMENSION)
+        self.storage = faiss.IndexFlatIP(DIMENSION)
 
         [ shutil.rmtree(i) for i in glob.glob(f'{DB_ROOT}/*')]
 
