@@ -7,6 +7,12 @@ You can install the Python dependencies with
 pip3 install -r requirements.txt
 ```
 
+Setup face detection
+```
+cd dialog_system/FaceRecognition/process/module/face_detection
+make
+```
+
 ## Inference
 
 ```
