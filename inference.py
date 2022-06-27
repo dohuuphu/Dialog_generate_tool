@@ -8,9 +8,7 @@ import torchaudio
 import cv2 as cv
 from os.path import dirname, join, basename, exists
 
-
-
-sys.path.append('/mnt/c/Users/phudh/Desktop/src/dialog_system/STT')
+sys.path.append('./STT')
 
 from STT.speechbrain.pretrained import EncoderASR
 from STT.asr_model.text_processing.inverse_normalize import InverseNormalizer

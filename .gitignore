@@ -2,7 +2,7 @@
 __pycache__
 audio/
 pretrained_models/
-video/
+video/*
 draf_CV/
 draf_ASR/
 
@@ -96,5 +96,5 @@ docs/_build/
 # Others
 models/
 libs/
-weights/
+FaceRecognition/weights/*
 lables/

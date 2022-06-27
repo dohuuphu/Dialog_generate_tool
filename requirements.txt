@@ -48,3 +48,5 @@ sounddevice
 # CV
 mediapipe
 mxnet
+
+faiss-cpu

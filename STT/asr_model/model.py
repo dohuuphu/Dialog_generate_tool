@@ -23,7 +23,7 @@ class ASRModel:
     def __init__(cls, cfg=None, *args, **kwargs):
         if not cls._isInit:
             cls.model_path = "STT/asr_model/base"
-            cls.lm_path = "STT/asr_model/lm.bin"
+            cls.lm_path = "STT/asr_model/base/lm.bin"
             cls.hot_words = []
 
             print("Loading model...")
