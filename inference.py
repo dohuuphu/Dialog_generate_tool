@@ -20,7 +20,7 @@ from STT.asr_model.variabels import *
 from Identify_speaker.inference import Model as ID_model
 from Identify_speaker.variables import *
 
-from FaceRecognition.face_module import FaceRecognize
+from FaceRecognition.face_module import FaceRecognize, Facelandmark
 
 from denoiser.denoiser.enhance_custom import Denoiser
 
@@ -44,6 +44,7 @@ class Dialog():
         self.id_model = ID_model()
         self.denoiser = Denoiser()
         self.faceRecognize = FaceRecognize()
+        self.faceLandmark = Facelandmark(MAX_NUM_FACES, STATIC_IMG_MODE, MIN_DETECTION_CONFIDENCE)
         self.video_name = None
         self.resultSpace = None
         self.cv_resultSpace = None
@@ -107,7 +108,7 @@ class Dialog():
                     prefix = ''
                     # cross check with Computervision
                     if self.count_speaker >= 1:
-                        if self.is_sameSpeaker() is False:     
+                        if self.is_sameSpeaker(CROSS_CHECK_METHOD) is False:     
                             if self.count_speaker >= 2: # split when meet third speaker
                                 self.id_model.database.clean_database() 
                                 self.count_speaker = 0
@@ -134,25 +135,8 @@ class Dialog():
                 w.writelines(i)
                 print(i)
         
-    def cut_person_inVideo(self):
-        ''' Cut sub_clip depending on audio segment'''
-        result_folder = join(self.cv_resultSpace, 'face_video')
-        self.create_folder(result_folder)
-        # video_path = join(VIDEO_ROOT, f'{self.video_name}.mp4')
-        try:
-            video = VideoFileClip(video_path)
-            for idx, sentence in enumerate(self.dialog_timeseries[-2:]):
-                start_time, end_time, _ = sentence
-                cutting = video.subclip(start_time, end_time)
-                cutting.write_videofile(f"{join(result_folder, str(idx))}.mp4")
-                
-            return result_folder
-
-        except OSError as e:
-            raise e
-
     
-    def is_sameSpeaker(self):
+    def is_sameSpeaker(self, method):
         '''Cross check by Computer Vision to determine the speaker in 2 subclips are the same person
         - Step 1: Trim video from time_segmentation that was save from audio_split
         - Step 2: Face detection + face verification => cluster the person in subclips (face + mouth)
@@ -188,7 +172,7 @@ class Dialog():
                         if frame_index % SKIP_FRAME != 0: continue  #skip frame
 
                         if ret:
-                            faces, mouths = self.faceRecognize.get_face(frame)
+                            faces, mouths, _ = self.faceRecognize.get_face(frame)
                             faces_ = []
                             mouths_ = []
 
@@ -197,8 +181,13 @@ class Dialog():
                                 img_pad = np.zeros([224, 224, 3])
                                 img_pad[:face.shape[0], :face.shape[1], :] = face
                                 # cv.imwrite(f'/mnt/c/Users/phudh/Desktop/src/dialog_system/draf_2/{name_video}_{frame_index+idx}_pad.jpg',img_pad)
-                                face_, mouth_ = self.faceRecognize.get_face(img_pad, crop_img = False, img_raw = face)
+                                face_, mouth_, landmark = self.faceRecognize.get_face(img_pad, crop_img = False, img_raw = face)
+
                                 if len(face_) > 0:
+                                    face_write  = face_[0].copy()
+                                    for point in landmark[0]:
+                                        cv.circle(face_write, (int(point[0]), int(point[1])), 3, (0,0,255), -1)
+                                    cv.imwrite(f'{DRAF2}{name_video}_{frame_index+idx}.jpg',face_write)
                                     cv.imwrite(f'{DRAF2}{name_video}_{frame_index+idx}.jpg',face_[0])
                                     cv.imwrite(f'{DRAF2}{name_video}_{frame_index+idx}_mouth.jpg',mouth_[0])
                                     faces_.append(face_[0])
@@ -225,10 +214,88 @@ class Dialog():
                 except OSError as e:
                     # print(e)s
                     raise e
+            if method == CHECK_BY_CV:
+                return self.predict_sameSpeakerCV(name_videos) # predict 2 subclip are the same person or not
+            elif method == CHECK_BY_LANDMARK:
+                return self.predict_sameSpeakerLandmark(name_videos)
 
-            return self.predict_sameSpeakerInSubvideo(name_videos) # predict 2 subclip are the same person or not
+    def predict_sameSpeakerLandmark(self, name_videos):
+        list_speaker = glob.glob(f'{self.id_faceFolder}/*')
+        results = {}
+        list_pred = []
+        if len(list_speaker) == 1: return True
 
-    def predict_sameSpeakerInSubvideo(self, name_videos):
+        #check mouth is a motion
+
+        # loop in subclips
+        for video_id in name_videos:
+            # loop all speaker in a subclip
+            for speaker_folder in list_speaker: 
+                count_speech = 0
+                frame_index = 0
+
+                # loop all face of a speaker
+                list_frame = []
+                # get image by name and sorted
+                for frame in glob.glob(f'{speaker_folder}/{video_id}*.jpg'):
+                    if '_mouth' in frame: continue
+                    name = frame.split('/')[-1].replace('.jpg','')
+                    list_frame.append([int(name), frame])
+                
+                for _, frame in sorted(list_frame):
+
+                    face = cv.imread(frame)
+                    
+                    # Get face landmark
+                    face_landmark, face_mesh_results = self.faceLandmark.detectFacialLandmarks(face, self.faceLandmark.face_mesh_images, display=True)
+
+                    # Check mouth is open or NOT
+                    if face_mesh_results.multi_face_landmarks:
+                        output_image, status = self.faceLandmark.isOpen(face, face_mesh_results, 'MOUTH', threshold=15, display=False, output_img=face_landmark)
+                        cv.imwrite(f'{frame.replace(".jpg", "_landmark.jpg")}',output_image)# cv.hconcat([face, output_image]))
+                    else: 
+                        continue
+
+                    frame_index += 1
+
+                    if frame_index % 2 == 0:
+                        frame_index -=1
+                        
+                        if status != first_stt:
+                            count_speech +=1 
+                            
+                    first_stt = status
+            
+                results.update({speaker_folder[-1]: count_speech})
+                print(f'video {video_id} | speaker_folder {speaker_folder[-1]}: {count_speech}')
+
+            if self.is_dictNotZero(results):
+                list_maxValue = []
+                ranking = sorted(results.items(), key=lambda x: x[1])
+                max_value = max(ranking, key=lambda x: x[1])
+                for val in ranking:
+                    if val[1] == max_value[1]:
+                        list_maxValue.append(val[0])
+
+                list_pred.append(list_maxValue) # sort result by count_speech and return speaker_name with max count_speech
+                print(f'max_speech : {list_pred[-1]}')
+            else:
+                list_pred.append([''])
+
+            # #clean folder 
+            # self.faceRecognize.database.clean_database()
+            # self.cv_resultSpace = self.create_folder(join(self.resultSpace, 'CV_result'))
+            # self.id_faceFolder = self.create_folder(join(self.cv_resultSpace, 'ID_face'))
+
+        if '' in list_pred[0] and '' in list_pred[1]:
+            return False
+        for val in list_pred[1]:
+            if val in list_pred[0]:
+                return True
+        return False
+
+            
+    def predict_sameSpeakerCV(self, name_videos):
         list_speaker = glob.glob(f'{self.id_faceFolder}/*')
         results = {}
         list_pred = []
@@ -302,7 +369,23 @@ class Dialog():
             # self.id_faceFolder = self.create_folder(join(self.cv_resultSpace, 'ID_face'))
         
         return True if list_pred[-2] == list_pred[1] else False
-            
+
+    def cut_person_inVideo(self):
+        ''' Cut sub_clip depending on audio segment'''
+        result_folder = join(self.cv_resultSpace, 'face_video')
+        self.create_folder(result_folder)
+        # video_path = join(VIDEO_ROOT, f'{self.video_name}.mp4')
+        try:
+            video = VideoFileClip(video_path)
+            for idx, sentence in enumerate(self.dialog_timeseries[-2:]):
+                start_time, end_time, _ = sentence
+                cutting = video.subclip(start_time, end_time)
+                cutting.write_videofile(f"{join(result_folder, str(idx))}.mp4")
+                
+            return result_folder
+
+        except OSError as e:
+            raise e
 
     def is_dictNotZero(self, dict):
         ''' Check dict is not a Zero_dict'''
@@ -425,7 +508,7 @@ if __name__ == "__main__":
     # main(files_path, dialog)
     # files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/hồngnhan/hồngnhan_denoise.wav'
     # main(files_path, dialog)
-    video_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/phim1.mp4'
+    video_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/Chồng cũ vợ cũ người yêu cũ 17.mp4'
     main(video_path, dialog)
     
 

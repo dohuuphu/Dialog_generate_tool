@@ -74,6 +74,7 @@ def get_face_area(img, detector, threshold, scales = [640, 1200], crop_img = Tru
 
     result_faces = []
     result_mouth = []
+    result_landmark = []
     if crop_img:
         for facial_5_points in landmarks:
             crop_face_img, mouth = process_img(img, facial_5_points, (112,112))
@@ -84,13 +85,14 @@ def get_face_area(img, detector, threshold, scales = [640, 1200], crop_img = Tru
         if len(landmarks)>0 and is_frontFaceing(landmarks[0]) :
             result_faces = [img_raw]
             for landmark in landmarks:
+                result_landmark.append(landmark)
                 top, bottom, left, right = mouth_ROI(landmark)
                 result_mouth.append(img_raw[top:bottom, left:right])
 
             
 
 
-    return result_faces, result_mouth, landmarks
+    return result_faces, result_mouth, result_landmark
 
 
 def draw_landmarks(img, landmark):
@@ -155,7 +157,7 @@ def is_frontFaceing(landmark):
     try:
         e_left, e_right, nose, m_left, m_right =  getName_landmark(landmark)
 
-        if abs(e_left[0] - e_right[0]) < 5 or abs(m_left[0] - m_right[0]) < 5:
+        if abs(e_left[0] - e_right[0]) < 10 or abs(m_left[0] - m_right[0]) < 10:
             return False
         else:
             return True
