@@ -1,12 +1,12 @@
 from collections import namedtuple
 
 # Faiss
-DIMENSION = 192
+DIMENSION = 192 #256
 
 DB_ROOT = '/mnt/c/Users/phudh/Desktop/src/dialog_system/Identify_speaker/speaker_id'
 
 # Inference
-THRESHOLD = 0.8
+THRESHOLD = 0.7
 SCORE = 0
 SPEAKER = 1
 

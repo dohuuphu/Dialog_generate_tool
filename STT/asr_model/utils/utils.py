@@ -115,13 +115,15 @@ def vad_split(audio_frames,
     voiced_frames = []
     frame_duration_ms = 0
     frame_index = 0
+    num_unvoiced = 0
     for frame_index, frame in enumerate(audio_frames):
         frame_duration_ms = get_pcm_duration(len(frame), audio_format) * 1000
         if int(frame_duration_ms) not in [10, 20, 30]:
             raise ValueError(
                 'VAD-splitting only supported for frame durations 10, 20, or 30 ms')
         is_speech = vad.is_speech(frame, audio_format.rate)
-        if not triggered:
+        # Check speaker is exist in a duration, if true start record
+        if not triggered: 
             ring_buffer.append((frame, is_speech))
             num_voiced = len([f for f, speech in ring_buffer if speech])
             if num_voiced > threshold * ring_buffer.maxlen:
@@ -129,10 +131,13 @@ def vad_split(audio_frames,
                 for f, s in ring_buffer:
                     voiced_frames.append(f)
                 ring_buffer.clear()
+
+        # Check speaker is NOT exist in a duration, if true return voice
         else:
             voiced_frames.append(frame)
             ring_buffer.append((frame, is_speech))
-            num_unvoiced = len([f for f, speech in ring_buffer if not speech])
+            # num_unvoiced = len([f for f, speech in ring_buffer if not speech])
+            num_unvoiced = 0 if is_speech else num_unvoiced+1
             if num_unvoiced > threshold * ring_buffer.maxlen:
                 triggered = False
                 yield b''.join(voiced_frames),\
