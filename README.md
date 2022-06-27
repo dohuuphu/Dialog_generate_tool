@@ -1,4 +1,4 @@
-# Dialog generater tool
+# Dialog generator tool
 This tool is aimed to create dialog data
 
 # Quickstart
