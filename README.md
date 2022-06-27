@@ -1,5 +1,5 @@
 # Dialog generator tool
-This tool is aimed to create dialog data
+This tool is intended to create dialog data
 
 # Quickstart
 You can install the Python dependencies with
