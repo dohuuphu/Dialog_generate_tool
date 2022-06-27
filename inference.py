@@ -1,20 +1,22 @@
 
 import shutil
+import argparse
 import sys
 import os
-from cv2 import CV_16SC1, imwrite
+from cv2 import imwrite
 import torchaudio
 import cv2 as cv
 from os.path import dirname, join, basename, exists
 
+
+
 sys.path.append('/mnt/c/Users/phudh/Desktop/src/dialog_system/STT')
-# sys.path.append('/mnt/c/Users/phudh/Desktop/src/dialog_system/Identify_speaker')
-# sys.path.append('/mnt/c/Users/phudh/Desktop/src/dialog_system/FaceRecognition')
-# sys.path.append('/mnt/c/Users/phudh/Desktop/src/dialog_system/FaceRecognition/process/module/face_detection')
+
 from STT.speechbrain.pretrained import EncoderASR
 from STT.asr_model.text_processing.inverse_normalize import InverseNormalizer
 from STT.asr_model.audio import AudioFile
 from STT.asr_model.variabels import *
+from STT.asr_model.model import ASRModel
 
 
 from Identify_speaker.inference import Model as ID_model
@@ -29,6 +31,7 @@ from utils.variables import *
 from moviepy.editor import *
 
 import torch
+
 import glob
 import shutil
 import numpy as np
@@ -40,7 +43,7 @@ from PIL import Image, ImageOps
 class Dialog():
     def __init__(self) -> None:
         self.normalizer = InverseNormalizer("vi")
-        self.asr_model = EncoderASR.from_hparams(source="/mnt/c/Users/phudh/Desktop/src/dialog_system/STT/config_model")
+        self.asr_model = ASRModel()
         self.id_model = ID_model()
         self.denoiser = Denoiser()
         self.faceRecognize = FaceRecognize()
@@ -70,9 +73,8 @@ class Dialog():
         signal = fconverter(np.asarray(signal, dtype = np.float64))
         return signal
 
-    def inference(self, audio_path):
+    def inference(self, audio_path, cross_check):
         self.count_speaker = 0
-        # id_speakerFolder = join(self.asr_resultSpace, 'id_speaker')
         audio_ = AudioFile(audio_path)
         with open(audio_path.replace('.wav','.txt'), 'w') as w:
             for start, end, audio_buffer, s in audio_.split_file():
@@ -82,8 +84,9 @@ class Dialog():
 
                 # audio_np = self.denoise_numpyData(audio_np).astype(np.float64)
                 audio_t = torch.from_numpy(audio_np).unsqueeze(1)
-                text = self.asr_model.transcribe_batch(self.asr_model.audio_normalizer(audio_t, SAMPLE_RATE).unsqueeze(0), torch.tensor([1.0]))[0] if self.asr_model else "emtpy a v c"
+                text = self.asr_model.transcribe(audio_np)[0] if self.asr_model else "emtpy for debug only"
 
+                # save wwav file for debug
                 self.count_draf+=1
                 path_audio = f'{DRAF}{self.count_draf}.wav'
                 wavfile.write(path_audio, SAMPLE_RATE, audio_np.astype(np.float32) )
@@ -91,9 +94,11 @@ class Dialog():
                 # identify speaker
                 if len(text.split(' ')) < 3:
                     continue
+
                 speaker = 'Null'
                 score = 0
 
+                # save timeseries log
                 self.dialog_timeseries.append([start/1000, end/1000, text])
 
                 stt, score, speaker_id, emb  = self.id_model.verify_speakers(audio_np)
@@ -108,7 +113,7 @@ class Dialog():
                     prefix = ''
                     # cross check with Computervision
                     if self.count_speaker >= 1:
-                        if self.is_sameSpeaker(CROSS_CHECK_METHOD) is False:     
+                        if cross_check is False or self.is_sameSpeaker(CROSS_CHECK_METHOD) is False :     
                             if self.count_speaker >= 2: # split when meet third speaker
                                 self.id_model.database.clean_database() 
                                 self.count_speaker = 0
@@ -122,7 +127,7 @@ class Dialog():
                             prefix = 'cross check:Pass |'
                             info = prefix + f'speaker {temp_speaker}'
 
-                        #clean folder 
+                        #clean folder for debug only (draf)
                         self.faceRecognize.database.clean_database()
                         self.cv_resultSpace = self.create_folder(join(self.resultSpace, 'CV_result'))
                         self.id_faceFolder = self.create_folder(join(self.cv_resultSpace, 'ID_face'))
@@ -477,11 +482,8 @@ class Dialog():
 
         
 
-def main(video_path, dialog):
-    
-    # remove all speaker folder
-    # [ shutil.rmtree(i) for i in glob.glob('/mnt/c/Users/phudh/Desktop/src/dialog_system/Identify_speaker/speaker_id/*')]
-
+def main(arg, dialog):
+    video_path = arg.path
     dialog.create_workSpace(video_path)
     
     # extrac audio from video
@@ -490,26 +492,19 @@ def main(video_path, dialog):
     # denoise audio
     audio_path = dialog.denoise_fullAudio(audio_path)
 
-    # dialog.id_model.database.clean_database(None)
-    dialog.inference(audio_path)
-    # dialog.identify_speaker_inVideo()
+    dialog.inference(audio_path, arg.cross_check)
+
 
 if __name__ == "__main__":
-    # remove all speaker folder
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p', '--path', type=str, help='path of video', required=True)
+    parser.add_argument('-c', '--cross_check', type=bool, help='cross_check same person by Computer Vision', default=True)
+    args = parser.parse_args()
 
     dialog = Dialog()
     
-
-    # files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/dialog/dialog.wav'
-    # main(files_path, dialog)
-    # files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/baongam/baongam_denoise.wav'
-    # main(files_path, dialog)
-    # files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/hongnhan_tap21/hongnhan_tap21_denoise.wav'
-    # main(files_path, dialog)
-    # files_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/hồngnhan/hồngnhan_denoise.wav'
-    # main(files_path, dialog)
     video_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/Chồng cũ vợ cũ người yêu cũ 17.mp4'
-    main(video_path, dialog)
+    main(args, dialog)
     
 
 

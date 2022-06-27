@@ -22,16 +22,16 @@ class ASRModel:
     _isInit = False
     def __init__(cls, cfg=None, *args, **kwargs):
         if not cls._isInit:
-            cls.model_path = "asr_model/base"
-            cls.lm_path = "asr_model/lm.bin"
+            cls.model_path = "STT/asr_model/base"
+            cls.lm_path = "STT/asr_model/lm.bin"
             cls.hot_words = []
 
             print("Loading model...")
             start = time.time()
             cls.device = torch.device(
                 config_app['deployment']['device'] if torch.cuda.is_available() else "cpu")
-            cls.processor = Wav2Vec2Processor.from_pretrained("asr_model/base")
-            cls.model = Wav2Vec2ForCTC.from_pretrained("asr_model/base").to(cls.device)
+            cls.processor = Wav2Vec2Processor.from_pretrained("STT/asr_model/base")
+            cls.model = Wav2Vec2ForCTC.from_pretrained("STT/asr_model/base").to(cls.device)
             cls.model.gradient_checkpointing_enable()
             print("Model loaded successfully in %fs" % (time.time() - start))
 
@@ -51,22 +51,10 @@ class ASRModel:
                             for (key, value) in vocab_dict.items())
         vocab = [x[1] for x in sort_vocab][:cls.vocab_size]
         vocab_list = vocab
-        # convert ctc blank character representation
         vocab_list[tokenizer.pad_token_id] = ""
-        # # replace special characters
-        # vocab_list[tokenizer.unk_token_id] = ""
-        # vocab_list[tokenizer.bos_token_id] = ""
-        # vocab_list[tokenizer.eos_token_id] = ""
-        # convert space character representation
-        vocab_list[tokenizer.word_delimiter_token_id] = " "
-        # specify ctc blank char index, since conventially it is the last entry of the logit matrix
-        # alphabet = Alphabet.build_alphabet(
-        #     vocab_list, ctc_token_idx=tokenizer.pad_token_id)
 
-        # if cls.lm_path is None:
-        #     lm_model = None
-        # else:
-        #     lm_model = LanguageModel(kenlm.Model(cls.lm_path))
+        vocab_list[tokenizer.word_delimiter_token_id] = " "
+
         decoder = build_ctcdecoder(vocab_list, cls.lm_path)
         return decoder
 
@@ -140,6 +128,7 @@ class ASRModel:
         # print(ground_truth, pred_str)
 
         return pred_str
+
     def transcribe_with_metadata(cls, audio, start):
         if len(audio.shape) == 1:
             audio = audio[np.newaxis, :]
