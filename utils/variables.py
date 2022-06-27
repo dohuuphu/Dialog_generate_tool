@@ -1,5 +1,5 @@
-DRAF = '/mnt/c/Users/phudh/Desktop/src/dialog_system/draf/'
-DRAF2 = '/mnt/c/Users/phudh/Desktop/src/dialog_system/draf_2/'
+DRAF_ASR = '/mnt/c/Users/phudh/Desktop/src/dialog_system/draf_ASR/'
+DRAF_CV = '/mnt/c/Users/phudh/Desktop/src/dialog_system/draf_CV/'
 
 VIDEO_ROOT = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video'
 
