@@ -10,12 +10,11 @@ import faiss
 class Database():
     def __init__(self):
         self.id_persons = DB_ROOT
-        # self.storage = self.parse_database() # use for verify speaker
         self.storage = faiss.IndexFlatL2(DIMENSION)
         self.map_storage = []
         self.num_speaker = 0
         self.init_database()
-    
+
     def init_database(self):
         list_personFolder = os.listdir(DB_ROOT)
         if list_personFolder is not None:
@@ -25,6 +24,14 @@ class Database():
                 if self.item_exist(path_personFolder, 'txt'):
                     for emb in self.read_spkEmb(path_personFolder):
                         self.add_newEmb2storage(emb, path_personFolder.split('/')[-1])  
+
+    def clean_database(self):
+        self.storage = None
+        self.map_storage = []
+        self.num_speaker = 0
+        self.storage = faiss.IndexFlatL2(DIMENSION)
+
+        [ shutil.rmtree(i) for i in glob.glob(f'{DB_ROOT}/*')]
 
     # read, convert and append emb to list_emb    
     def read_spkEmb(self, personal_folders):
@@ -42,10 +49,10 @@ class Database():
         return list_emb
 
     # create folder and append new speaker to storage     
-    def save_spkEmb(self, emb, name = None):
+    def save_spkEmb(self, root_folder, emb, name = None):
         name = str(self.num_speaker + 1) if name is None else name
         name_ = name.strip().lower()
-        personalFolder = os.path.join(DB_ROOT, name_)
+        personalFolder = os.path.join(root_folder, name_)
 
         if not os.path.exists(personalFolder) or not self.item_exist(personalFolder, 'txt'):
             try:
@@ -59,7 +66,7 @@ class Database():
         if self.add_newEmb2storage(emb, name):
             return self.write_emb(emb, personalFolder)
 
-        return False
+        return False, None
 
 
     def add_newEmb2storage(self, emb, name):
@@ -74,16 +81,14 @@ class Database():
 
     def write_emb(self, emb, personalFolder):
         try:
-            num_item = len(os.listdir(personalFolder))
+            num_item = len(glob.glob(f'{personalFolder}/*.txt'))
             emb_path = os.path.join(personalFolder,str(num_item + 1) + '.txt')
-            # with open(emb_path, 'w') as write:
-            #     write.writelines(self.format_emb(emb))
-            #     # logging.info(f"Write new speaker embedding at {emb_path}")
+
             np.savetxt(emb_path, emb)
-            return True
+            return True, emb_path
         except OSError as e:
             print(f'Write emb func {e}')
-            return False
+            return False, None
     
     def format_emb(self, emb):
         items = []
