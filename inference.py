@@ -88,7 +88,7 @@ class Dialog():
 
                 # save wwav file for debug
                 self.count_draf+=1
-                path_audio = f'{DRAF}{self.count_draf}.wav'
+                path_audio = f'{DRAF_ASR}{self.count_draf}.wav'
                 wavfile.write(path_audio, SAMPLE_RATE, audio_np.astype(np.float32) )
 
                 # identify speaker
@@ -192,9 +192,9 @@ class Dialog():
                                     face_write  = face_[0].copy()
                                     for point in landmark[0]:
                                         cv.circle(face_write, (int(point[0]), int(point[1])), 3, (0,0,255), -1)
-                                    cv.imwrite(f'{DRAF2}{name_video}_{frame_index+idx}.jpg',face_write)
-                                    cv.imwrite(f'{DRAF2}{name_video}_{frame_index+idx}.jpg',face_[0])
-                                    cv.imwrite(f'{DRAF2}{name_video}_{frame_index+idx}_mouth.jpg',mouth_[0])
+                                    cv.imwrite(f'{DRAF_CV}{name_video}_{frame_index+idx}.jpg',face_write)
+                                    cv.imwrite(f'{DRAF_CV}{name_video}_{frame_index+idx}.jpg',face_[0])
+                                    cv.imwrite(f'{DRAF_CV}{name_video}_{frame_index+idx}_mouth.jpg',mouth_[0])
                                     faces_.append(face_[0])
                                     mouths_.append(mouth_[0])
 
@@ -298,8 +298,7 @@ class Dialog():
             if val in list_pred[0]:
                 return True
         return False
-
-            
+           
     def predict_sameSpeakerCV(self, name_videos):
         list_speaker = glob.glob(f'{self.id_faceFolder}/*')
         results = {}
@@ -424,7 +423,7 @@ class Dialog():
 
         return f'New_face *{self.faceRecognize.database.num_speaker}*' if success else f'Save new speaker failed!!!'
 
-    def extrac_audio_from_video(self, video_path):
+    def extract_audio_from_video(self, video_path):
         try:
             print(f'Extract audio from video ...')
 
@@ -455,10 +454,11 @@ class Dialog():
         audio =  self.denoiser.enhance_numpyData(audio_np)
         return audio
 
-    def create_folder(self, folder_path):
+    def create_folder(self, folder_path, remain = False):
         ''' create folder with path, remove old folder if it exist'''
         if exists(folder_path):
             try:
+                if remain: return folder_path
                 shutil.rmtree(folder_path)
             except OSError as e:
                 pass
@@ -469,6 +469,10 @@ class Dialog():
 
     def create_workSpace(self, video_path):
         self.video_name = basename(video_path).split('.')[0]
+
+        self.create_folder(VIDEO_ROOT, remain=True)
+        self.create_folder(DRAF_ASR)
+        self.create_folder(DRAF_CV)
 
         self.resultSpace = self.create_folder(join(VIDEO_ROOT, self.video_name))
 
@@ -486,8 +490,8 @@ def main(arg, dialog):
     video_path = arg.path
     dialog.create_workSpace(video_path)
     
-    # extrac audio from video
-    audio_path = dialog.extrac_audio_from_video(video_path)
+    # extract audio from video
+    audio_path = dialog.extract_audio_from_video(video_path)
 
     # denoise audio
     audio_path = dialog.denoise_fullAudio(audio_path)
