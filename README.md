@@ -27,3 +27,17 @@ python inference.py -p 'video_path' -c True
 -c: cross check by Computer Vision (bool)
 - The result folder (ASR_result and CV_result) will be created at the folder that contain input_video
 - The dialog_file is located at ASR_result folder as txt file
+
+## Feature status
+
+- Audio:
+    + Advantage: speech to text, denoiser, good verify with different voice
+    + Disadvantage: bad performance when same person but different tone and different person but same voice
+
+- Computer Vision:
+    + Advantage: filter deformed face, good verification with frontal face, mouth motion detection
+    + Disadvantage: bad performance when same person but different angle 
+
+Note: Highly recommend using with video contain 2 or 3 persons, with difference sex or voice, and the less noise is better
+
+
