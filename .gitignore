@@ -98,3 +98,14 @@ models/
 libs/
 FaceRecognition/weights/*
 lables/
+
+#uis-rnn
+
+*.pyc
+.DS_Store
+*result.txt
+*.uisrnn
+build/*
+dist/*
+uisrnn.egg-info/*
+.coverage
