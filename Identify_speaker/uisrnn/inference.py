@@ -25,7 +25,7 @@ class Diarization_model():
         model_args.rnn_hidden_size = 512
         model_args.observation_dim = 256
         self.model = uisrnn.UISRNN(model_args)
-        self.model.load('/mnt/c/Users/phudh/Desktop/src/dialog_system/saved_model.uisrnn')
+        self.model.load('./saved_model.uisrnn')
 
 
     def verify_speaker(self, list_emb:list):
