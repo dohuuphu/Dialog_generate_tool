@@ -19,6 +19,7 @@ from STT.asr_model.model import ASRModel
 
 from Identify_speaker.inference import Model as ID_model
 from Identify_speaker.variables import *
+from Identify_speaker.uisrnn.inference import Diarization_model
 
 from FaceRecognition.face_module import FaceRecognize, Facelandmark
 
@@ -42,7 +43,8 @@ class Dialog():
     def __init__(self) -> None:
         self.normalizer = InverseNormalizer("vi")
         self.asr_model = ASRModel()
-        self.id_model = ID_model()
+        self.id_model = ID_model() 
+        self.diarization = Diarization_model()
         self.denoiser = Denoiser()
         self.faceRecognize = FaceRecognize()
         self.faceLandmark = Facelandmark(MAX_NUM_FACES, STATIC_IMG_MODE, MIN_DETECTION_CONFIDENCE)
@@ -73,71 +75,52 @@ class Dialog():
 
     def inference(self, audio_path, cross_check):
         self.count_speaker = 0
+        speaker_ID =0
+        list_text = []
+        list_emb = []
         audio_ = AudioFile(audio_path)
         with open(audio_path.replace('.wav','.txt'), 'w') as w:
-            for start, end, audio_buffer, s in audio_.split_file():
- 
+            for idx, (start, end, audio_buffer, s) in enumerate(audio_.split_file()):
+                self.count_speaker += 1
                 # speech to text
                 audio_np = self.buffer_to_numpy(audio_, audio_buffer)
 
                 # audio_np = self.denoise_numpyData(audio_np).astype(np.float64)
                 audio_t = torch.from_numpy(audio_np).unsqueeze(1)
                 text = self.asr_model.transcribe(audio_np)[0] if self.asr_model else "emtpy for debug only"
+                list_text.append(text)
+                
+                list_emb.append(self.id_model.get_embedding(audio_np))
 
                 # save wwav file for debug
                 self.count_draf+=1
                 path_audio = f'{DRAF_ASR}{self.count_draf}.wav'
                 wavfile.write(path_audio, SAMPLE_RATE, audio_np.astype(np.float32) )
 
-                # identify speaker
-                if len(text.split(' ')) < 3:
-                    continue
-
-                speaker = 'Null'
-                score = 0
+                
+                # if len(list_emb) > 1:
+                #     result = self.diarization.verify_speaker(list_emb)
+                #     if 2 in result: # meet third speaker                       
+                #         for idx, spk_id in enumerate(result):
+                #             if spk_id != result[-1]:
+                #                 info = f'{spk_id} - {list_text[idx]}\n'
+                #                 w.writelines(info)
+                #                 print(info)
+                #         w.writelines('=========\n')
+                #         print('=========\n')
+                #         list_text = [list_text[-1]]
+                #         list_emb = [list_emb[-1]]
 
                 # save timeseries log
                 self.dialog_timeseries.append([start/1000, end/1000, text])
+                
 
-                stt, score, speaker_id, emb  = self.id_model.verify_speakers(audio_np)
-                if stt is IDENTIFIED:
-                    speaker = self.id_model.database.map_storage[speaker_id]
+            # Run for all audio
+            result = self.diarization.verify_speaker(list_emb)
+            for idx, spk_id in enumerate(result):
+                info = f'{spk_id} - {list_text[idx]}\n'
+                w.writelines(info)
 
-                    temp_speaker = speaker
-                    info = f'speaker {speaker}'
-                    if score >= 0.9:
-                        self.save_speaker(self.id_speakerFolder, emb, audio_np, speaker)
-                else: 
-                    prefix = ''
-                    # cross check with Computervision
-                    if self.count_speaker >= 1:
-                        if cross_check is False or self.is_sameSpeaker(CROSS_CHECK_METHOD) is False :     
-                            if self.count_speaker >= 2: # split when meet third speaker
-                                self.id_model.database.clean_database() 
-                                self.count_speaker = 0
-                                prefix = '====================================\n'
-                                info = prefix + self.save_speaker(self.id_speakerFolder, emb, audio_np)
-                            
-                            else:
-                                info = prefix + self.save_speaker(self.id_speakerFolder, emb, audio_np)
-                                temp_speaker =  self.count_speaker
-                        else:
-                            prefix = 'cross check:Pass |'
-                            info = prefix + f'speaker {temp_speaker}'
-
-                        #clean folder for debug only (draf)
-                        self.faceRecognize.database.clean_database()
-                        self.cv_resultSpace = self.create_folder(join(self.resultSpace, 'CV_result'))
-                        self.id_faceFolder = self.create_folder(join(self.cv_resultSpace, 'ID_face'))
-                    else:
-                        info = prefix + self.save_speaker(self.id_speakerFolder, emb, audio_np)
-                        temp_speaker =  self.count_speaker       
-    
-
-                i = f'{info} : {text} | pred {speaker} : {score:.3f} \n'   
-                w.writelines(i)
-                print(i)
-        
     
     def is_sameSpeaker(self, method):
         '''Cross check by Computer Vision to determine the speaker in 2 subclips are the same person
@@ -485,7 +468,7 @@ class Dialog():
         
 
 def main(arg, dialog):
-    video_path = arg.path
+    video_path = arg if type(arg) is str else arg.path
     dialog.create_workSpace(video_path)
     
     # extract audio from video
@@ -494,18 +477,18 @@ def main(arg, dialog):
     # denoise audio
     audio_path = dialog.denoise_fullAudio(audio_path)
 
-    dialog.inference(audio_path, arg.cross_check)
+    dialog.inference(audio_path, False)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-p', '--path', type=str, help='path of video', required=True)
-    parser.add_argument('-c', '--cross_check', type=bool, help='cross_check same person by Computer Vision', default=True)
-    args = parser.parse_args()
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('-p', '--path', type=str, help='path of video', required=True)
+    # parser.add_argument('-c', '--cross_check', type=bool, help='cross_check same person by Computer Vision', default=True)
+    # args = parser.parse_args()
 
     dialog = Dialog()
     
-    video_path = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/Chồng cũ vợ cũ người yêu cũ 17.mp4'
+    args = '/mnt/c/Users/phudh/Desktop/src/dialog_system/video/baongam.mp4'
     main(args, dialog)
     
 

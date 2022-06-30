@@ -14,8 +14,8 @@ class Model():
         self.database = Database()
         self.num_speaker = 0
         self.device = torch.device('cpu')
-        self.speaker_model = nemo_asr.models.EncDecSpeakerLabelModel.from_pretrained(model_name='ecapa_tdnn', map_location= self.device)
-        # self.speaker_model = torch.hub.load('RF5/simple-speaker-embedding', 'convgru_embedder', device = 'cpu').eval()
+        # self.speaker_model = nemo_asr.models.EncDecSpeakerLabelModel.from_pretrained(model_name='ecapa_tdnn', map_location= self.device)
+        self.speaker_model = torch.hub.load('RF5/simple-speaker-embedding', 'convgru_embedder', device = 'cpu').eval()
 
     def verify_speakers(self, input_):
         start = time.time()
@@ -76,6 +76,9 @@ class Model():
         emb_ = self.calculate_emb(audio) if emb is None else emb
 
         return self.database.save_spkEmb(root_folder, emb_, name)
+
+    def get_embedding(self, data: np.array):
+        return self.speaker_model(torch.from_numpy(data).float()[None]).squeeze(0).detach().cpu().numpy().astype(np.float64)
 
             
 if __name__ == "__main__":
